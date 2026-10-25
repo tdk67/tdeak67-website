@@ -30,11 +30,21 @@ GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
     f"{MODEL}:streamGenerateContent?alt=sse"
 )
-SYSTEM_INSTRUCTION = os.environ.get(
-    "SYSTEM_INSTRUCTION_FALLBACK",
-    "You are Tamas Deak's portfolio AI assistant. Answer concisely about his "
-    "experience, skills, and projects. Stay factual; if unsure, say so.",
-)
+def _load_system_instruction() -> str:
+    """Load the same CV-backed system prompt the old client used."""
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "system_prompt.txt")
+    try:
+        with open(p, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return os.environ.get(
+            "SYSTEM_INSTRUCTION_FALLBACK",
+            "You are Tamas Deak's portfolio AI assistant. Answer concisely about "
+            "his experience, skills, and projects. Stay factual; if unsure, say so.",
+        )
+
+
+SYSTEM_INSTRUCTION = _load_system_instruction()
 
 ALLOWED_ORIGINS = {
     "https://tdeak67.com",
