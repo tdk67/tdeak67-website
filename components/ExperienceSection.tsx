@@ -25,7 +25,6 @@ const ExperienceSection: React.FC = () => {
         {/* Experience Ledger Cards */}
         <div className="space-y-8">
           {EXPERIENCES.map((exp, index) => {
-            const isLatest = index === 0;
             const tilt = index % 2 === 0 ? 'transform -rotate-0.5' : 'transform rotate-0.5';
 
             return (
@@ -57,10 +56,17 @@ const ExperienceSection: React.FC = () => {
                 </ul>
 
                 {/* Callout stamp for primary milestones */}
-                {isLatest && (
+                {exp.company === 'FlyRank AI' && (
                   <div className="mt-5 pt-4 border-t border-rule flex items-center gap-2">
                     <span className="font-hand text-xl text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-md border border-emerald-200 select-none">
-                      Active Role: Travel eCommerce Backend (Kotlin, Spring Boot, REST)
+                      Active Role: AI Engineering & Agentic Workflows
+                    </span>
+                  </div>
+                )}
+                {exp.company === 'DERTOUR Group' && (
+                  <div className="mt-5 pt-4 border-t border-rule flex items-center gap-2">
+                    <span className="font-hand text-xl text-emerald-800 font-bold bg-emerald-50 px-3 py-1 rounded-md border border-emerald-200 select-none">
+                      Travel & e-Commerce Backend (Kotlin, Spring Boot, REST)
                     </span>
                   </div>
                 )}
