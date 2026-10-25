@@ -31,3 +31,8 @@ dist-ssr
 *.sln
 *.sw?
 .hallmark
+
+# Python venv for chat proxy
+server/.venv/
+__pycache__/
+*.pyc

@@ -1,62 +1,86 @@
-import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { SYSTEM_INSTRUCTION } from '../constants';
+// Server-side proxy keeps the Gemini API key off the client.
+// The browser only talks to our own backend at /api/chat which:
+//   - holds the key in its environment (.env)
+//   - applies per-IP rate limiting (nginx + app-level token bucket)
+//   - streams the assistant text back to the client
+const CHAT_ENDPOINT = '/api/chat';
 
-// Initialize the API client
-// The API key must be obtained exclusively from the environment variable process.env.API_KEY
-const apiKey = process.env.API_KEY;
-
-// Debugging logs for troubleshooting
-if (!apiKey) {
-  console.error("❌ Gemini API Key is missing. The app was built without 'API_KEY' or 'GEMINI_API_KEY' set.");
-} else {
-  // Log first 4 chars to confirm it's loaded without leaking the full key
-  console.log(`✅ Gemini API Key loaded (starts with: ${apiKey.substring(0, 4)}...)`);
-}
-
-const ai = new GoogleGenAI({ apiKey: apiKey || 'DUMMY_KEY_FOR_INIT' });
-
-let chatSession: Chat | null = null;
-
-export const getChatSession = (): Chat => {
-  if (!chatSession) {
-    chatSession = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        temperature: 0.7,
-      },
-    });
-  }
-  return chatSession;
-};
-
+/**
+ * Stream a chat message through the server-side proxy.
+ * Yields the assistant text chunks as they arrive.
+ */
 export const sendMessageToGemini = async function* (message: string) {
-  if (!apiKey) {
-    yield "I am currently offline because my API key is missing. Please contact the administrator.";
+  // Bounded conversation window so the proxy keeps context server-side;
+  // the client never holds or sends the API key.
+  const conversation = getRecentMessages();
+
+  let res: Response;
+  try {
+    res = await fetch(CHAT_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, conversation }),
+    });
+  } catch (err) {
+    console.error('chat proxy unreachable', err);
+    yield '⚠️ I cannot reach the chat service right now. Please try again later.';
     return;
   }
 
-  const chat = getChatSession();
-  
-  try {
-    const result = await chat.sendMessageStream({ message });
-    
-    for await (const chunk of result) {
-      const responseChunk = chunk as GenerateContentResponse;
-      if (responseChunk.text) {
-        yield responseChunk.text;
-      }
+  if (!res.ok) {
+    if (res.status === 429) {
+      yield '⚠️ You are sending messages too fast. Please wait a moment and try again.';
+      return;
     }
-  } catch (error: any) {
-    console.error("Error communicating with Gemini:", error);
-    
-    // Improved error handling for common issues
-    if (error.message?.includes("API key not valid")) {
-      yield "Configuration Error: The API key provided is invalid.";
-    } else if (error.message?.includes("403")) {
-      yield "Access Denied: The API key cannot be used from this domain. Please check the API key restrictions in Google AI Studio.";
-    } else {
-      yield "I'm sorry, I encountered an issue connecting to the knowledge base. Please try again later.";
+    const errText = await res.text();
+    console.error('chat proxy error', res.status, errText.slice(0, 300));
+    yield '⚠️ Chat service error. Please try again later.';
+    return;
+  }
+
+  // Stream the text/plain body chunk by chunk.
+  if (!res.body) return;
+  const reader = res.body.getReader();
+
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    // Yield incrementally for a live typing effect.
+    if (buffer.length > 0) {
+      yield buffer;
+      buffer = '';
     }
   }
 };
+
+// --- small client-side conversation memory --------------------------------
+// Stores the last few turns so the proxy can answer contextually without the
+// client ever needing the API key.
+const RECENT_KEY = 'tdeak_chat_recent_context';
+
+function getRecentMessages(): { role: 'user' | 'model'; text: string }[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((m) => m && (m.role === 'user' || m.role === 'model') && typeof m.text === 'string')
+      .slice(-8);
+  } catch {
+    return [];
+  }
+}
+
+export function rememberMessage(role: 'user' | 'model', text: string) {
+  try {
+    const history = getRecentMessages();
+    history.push({ role, text: text.slice(0, 2000) });
+    localStorage.setItem(RECENT_KEY, JSON.stringify(history.slice(-12)));
+  } catch {
+    /* non-fatal */
+  }
+}

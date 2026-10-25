@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { sendMessageToGemini } from '../services/geminiService';
+import { sendMessageToGemini, rememberMessage } from '../services/geminiService';
 import { ChatMessage } from '../types';
 import Captcha from './Captcha';
 
@@ -143,6 +143,7 @@ const ChatWidget: React.FC = () => {
 
     try {
       const stream = sendMessageToGemini(userText);
+      rememberMessage('user', userText);
       let fullResponse = "";
       let hasResponse = false;
 
@@ -157,6 +158,10 @@ const ChatWidget: React.FC = () => {
           }
           return newMessages;
         });
+      }
+
+      if (fullResponse.trim()) {
+        rememberMessage('model', fullResponse.trim());
       }
 
       if (!hasResponse) {
