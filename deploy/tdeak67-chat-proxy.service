@@ -5,9 +5,10 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/tdeak67_website/server
-EnvironmentFile=/root/tdeak67_website/.env
-ExecStart=/root/tdeak67_website/server/.venv/bin/python /root/tdeak67_website/server/chat_proxy.py
+# Adjust these paths to match your clone location (e.g. /home/user/tdeak67_website)
+WorkingDirectory=REPLACE_WITH_ABSOLUTE_PATH/server
+EnvironmentFile=REPLACE_WITH_ABSOLUTE_PATH/.env
+ExecStart=REPLACE_WITH_ABSOLUTE_PATH/server/.venv/bin/python REPLACE_WITH_ABSOLUTE_PATH/server/chat_proxy.py
 Restart=on-failure
 RestartSec=3
 
