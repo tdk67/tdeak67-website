@@ -11,12 +11,13 @@ This is the codebase for the personal portfolio website of **Tamas Deak**, Senio
 ## 🌟 Key Features
 
 1. **Dynamic Portfolio**: Showcases professional timeline, technical expertise, and latest certifications.
-2. **AI Chat Assistant**: An interactive chatbot representing Tamas, powered by Gemini 2.5 Flash using the `@google/genai` SDK.
+2. **AI Chat Assistant**: An interactive chatbot representing Tamas, powered by Gemini 2.5 Flash — **securely proxied server-side** so the API key never reaches the browser.
 3. **Projects Showcase**: A card-based grid displaying deployed projects, direct live links, and GitHub links (if public).
 4. **Site Management CLI**: An offline tool to update the CV and manage/bookkeep the list of deployed projects.
-5. **Intelligent Rate Limiter & CAPTCHA**: Client-side spam protection to protect API key costs, using:
-   - Accessible "I am not a robot" checkbox challenge (keyboard navigable, WCAG 2.1).
-   - Sliding-window rate limiting (Burst limit: 3 messages / 10s; Sustained limit: 10 messages / 3m).
+5. **Server-Side Rate Limiting & Anti-Abuse**: Two independent per-IP defences protect API costs:
+   - **nginx `limit_req`** zone (6 req/min, burst 3) as the first line of defence.
+   - **App-level token bucket** in the proxy (burst 3/10s + sustained 10/3min), plus an **Origin allow-list** that rejects cross-site calls, an input length cap, and a bounded conversation window.
+   - The in-page "I am not a robot" checkbox remains as a lightweight UX gate.
 6. **Accessibility (WCAG 2.1)**: Skip-to-content link, mobile navigation menu, ARIA labels/roles throughout, Escape-key and keyboard support.
 7. **Verified Credential Badge**: A verifiable **FlyRank AI** credential badge in the Certifications section and footer, linking to `internship.flyrank.ai/verify`.
 8. **Chat Hardening**: 1500-character message cap and sanitization of `javascript:` links in rendered markdown responses.
@@ -27,9 +28,9 @@ This is the codebase for the personal portfolio website of **Tamas Deak**, Senio
 
 ### Architecture
 - **Frontend**: A React single-page application (SPA) styled with Tailwind CSS, built and bundled using Vite.
-- **AI Integration**: The frontend communicates directly with the Gemini API. The system instructions and CV context are loaded dynamically from [constants.ts](constants.ts) to guide the model's persona.
+- **AI Integration (secure proxy)**: The frontend **never** talks to Google directly. It POSTs to `/api/chat` → [nginx](nginx-docker.conf) (rate-limited) → [server/chat_proxy.py](server/chat_proxy.py) (FastAPI) which holds the Gemini API key in `server-side .env` and streams the model's response back. The system instruction & CV context live in [server/system_prompt.txt](server/system_prompt.txt).
 - **Data Persistence**:
-  - Verification tokens and chat timestamps are kept in the browser's `localStorage` to survive page reloads and prevent easy rate-limit bypasses.
+  - A small bounded conversation window is kept in the browser's `localStorage` (last 12 turns) purely for context; the key and limits live server-side.
   - Project bookkeeping logs are saved locally in [projects.json](projects.json).
 
 ### CLI Management Tool
@@ -48,9 +49,12 @@ The file [manage-site.js](scripts/manage-site.js) provides a developer interface
 - **Tailwind CSS 3.4** - Utility-first styling framework
 
 ### AI & Markdown
-- **@google/genai 1.30** - Official Google GenAI SDK
 - **react-markdown 9.0** - Renders chatbot's markdown responses
 - **remark-gfm 4.0** - Remark plugin for GitHub Flavored Markdown (tables, lists, bold)
+
+### Server (chat proxy)
+- **FastAPI + Uvicorn** - Lightweight async proxy that hides the Gemini API key
+- **httpx** - Async streaming client for Gemini's SSE endpoint
 
 ---
 
@@ -58,6 +62,7 @@ The file [manage-site.js](scripts/manage-site.js) provides a developer interface
 
 ### Prerequisites
 - Node.js (version 18 or higher)
+- Python 3.12 (for the chat proxy)
 - A Gemini API Key (obtained from [Google AI Studio](https://aistudio.google.com/))
 
 ### Steps
@@ -66,23 +71,38 @@ The file [manage-site.js](scripts/manage-site.js) provides a developer interface
    cd tdeak67_website
    ```
 
-2. **Install dependencies**:
+2. **Install frontend dependencies**:
    ```bash
    npm install
    ```
 
 3. **Configure Environment Variables**:
-   Create a `.env` file in the root directory and add your Gemini API key:
+   Create a `.env` file in the root directory (**never commit it** — see `.env.example`):
    ```env
    API_KEY=your_actual_gemini_api_key_here
+   GEMINI_REFERER=https://tdeak67.com/
+   PROXY_PORT=8020
    ```
-   *Alternatively, the app also checks for `GEMINI_API_KEY` in `.env.local`.*
 
-4. **Run the local development server**:
+4. **Set up the chat proxy** (this is what keeps the key off the client):
+   ```bash
+   cd server
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   python chat_proxy.py
+   ```
+
+5. **Run the local development server**:
    ```bash
    npm run dev
    ```
-   Open your browser and navigate to `http://localhost:5173`.
+   Open your browser and navigate to `http://localhost:5173`. In dev, add a proxy for `/api/chat` -> `http://127.0.0.1:8020/v1/chat` in your Vite config if not using nginx.
+
+6. **Keep the proxy alive** (VPS):
+   ```bash
+   sudo systemctl enable --now tdeak67-chat-proxy
+   ```
 
 ---
 
@@ -139,32 +159,32 @@ Before deploying, compile and package the assets:
 npm run build
 ```
 
-### 2. Deploy to Hosting Providers
+### 2. Deploy the static site
+```bash
+# Build the Docker image and run the container (serves dist/ via nginx)
+docker build -t tdeak67:latest .
+docker rm -f tdeak67-website
+docker run -d --name tdeak67-website --restart unless-stopped -p 127.0.0.1:8005:80 tdeak67:latest
+```
 
-#### Vercel
-1. Install Vercel CLI: `npm install -g vercel`
-2. Run `vercel` from the root directory.
-3. In the Vercel Dashboard, go to **Project Settings -> Environment Variables** and add:
-   - Key: `API_KEY`
-   - Value: `[Your Gemini API Key]`
-4. Redeploy to apply environment variables.
+### 3. Deploy the chat proxy
+```bash
+# systemd unit already provided in repo; on the VPS:
+sudo cp deploy/tdeak67-chat-proxy.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now tdeak67-chat-proxy
+```
+The proxy listens on `127.0.0.1:8020` and should only ever be reached through nginx (never exposed publicly).
 
-#### Netlify
-1. Log in to Netlify and select **New site from Git** (or drag-and-drop the `dist` folder).
-2. Configure build settings:
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-3. Go to **Site configuration -> Environment variables** and add `API_KEY`.
-4. Trigger a new deploy.
+### 4. Nginx routing
+- `GET /` → the static container at `127.0.0.1:8005`
+- `POST /api/chat` → the proxy at `127.0.0.1:8020/v1/chat`, gated by a `limit_req` zone (per-IP, 6 req/min burst 3)
 
-#### Custom Web Server / Hostinger
-Upload all files inside the `dist/` folder to your public directory (e.g., `public_html`) using FTP or the host's file manager.
+### 5. Hosting Providers (Vercel / Netlify)
+If you host the static site on Vercel/Netlify instead of this VPS:
+1. Build command: `npm run build`, publish directory: `dist`.
+2. Do **not** put the API key in frontend env vars.
+3. Deploy the proxy (e.g. Vercel Serverless Function or a small VM) and point `CHAT_ENDPOINT` in `services/geminiService.ts` to it.
 
-> [!WARNING]
-> **Security Warning on Static Site Keys:**
-> In this client-side SPA architecture, `process.env.API_KEY` is compiled directly into the JavaScript files inside `dist/` during the Vite build process. This means your Gemini API key is visible to visitors inspecting network requests.
->
-> **Production Best Practice**: To fully protect your API key from abuse in production:
-> 1. Set up a simple serverless function (e.g., a Vercel Serverless Function or Netlify Function) to act as a proxy.
-> 2. Move the Gemini API call (`@google/genai`) to this serverless function.
-> 3. Point `geminiService.ts` to call your serverless function endpoint instead of calling Gemini directly.
+> [!NOTE]
+> **Security model**: The Gemini API key lives **only** in the server-side `.env`. The built `dist/` bundle contains no key — verified by scanning the deployed assets for the `AIza...` pattern. Abuse is throttled at two layers: nginx `limit_req` and the proxy's per-IP token bucket, both keyed on the caller's real IP.

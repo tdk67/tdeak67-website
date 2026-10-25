@@ -1,0 +1,15 @@
+[Unit]
+Description=tdeak67.com AI chat proxy (hides Gemini API key)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/tdeak67_website/server
+EnvironmentFile=/root/tdeak67_website/.env
+ExecStart=/root/tdeak67_website/server/.venv/bin/python /root/tdeak67_website/server/chat_proxy.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
