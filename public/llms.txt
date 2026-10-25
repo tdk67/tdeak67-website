@@ -1,0 +1,26 @@
+# Tamas Deak - Agentic AI Engineer
+
+## About
+Tamas Deak is an Agentic AI Engineer and Senior Solution Consultant. He bridges the gap between complex system reliability and the future of AI-driven automation, with over 20 years of backend engineering excellence at industry leaders like Ericsson.
+
+## Services
+- AI Consulting
+- Machine Learning model development and deployment
+- NLP solutions (chatbots, text analysis, document processing)
+- Computer Vision applications
+- AI strategy and implementation
+- Backend engineering
+
+## Location
+Hessen, Germany (Rhein-Main area)
+
+## Contact
+Website: https://tdeak67.com
+LinkedIn: https://linkedin.com/in/tdeak67
+Portfolio: https://portfolio.taskmind-ai.com
+
+## Technologies
+Python, TensorFlow, PyTorch, Scikit-learn, Hugging Face, AWS, Azure AI, Docker, Kubernetes, MLOps, React, Node.js
+
+## Languages
+English, German, Hungarian

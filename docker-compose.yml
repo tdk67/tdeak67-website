@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  tdeak67:
+    build: .
+    image: tdeak67:latest
+    container_name: tdeak67-website
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8005:80"
+    networks:
+      - tdeak67-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  tdeak67-net:
+    driver: bridge

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "robot-test-wizard",
+    "title": "Robot Test Wizard",
+    "description": "Cloud-ready test automation framework on Robot Framework 7.x & Playwright, where AI agents generate grounded, hallucination-free test suites.",
+    "githubUrl": "https://github.com/tdk67/robot-test-wizard",
+    "liveUrl": "https://www.linkedin.com/posts/tdeak67_generating-robot-framework-tests-using-coding-ugcPost-7519538487663009792-bQ8J/",
+    "showOnSite": true
+  },
+  {
+    "id": "music-note-reader",
+    "title": "Music Note Reader",
+    "description": "100% local, zero-API-key Neural Optical Music Recognition (OMR) system transcribing sheet music & PDFs into MusicXML, playable WAV audio, and MIDI.",
+    "githubUrl": "https://github.com/tdk67/music-note-reader",
+    "liveUrl": "https://taskmind-ai.com/music-note-reader/",
+    "showOnSite": true
+  },
+  {
+    "id": "latch",
+    "title": "Latch",
+    "description": "Enterprise PII guardrail & daemon intercepting and redacting sensitive data and credentials before git or LLMs, with live Grafana metrics.",
+    "githubUrl": "https://github.com/tdk67/pii-guardrail",
+    "liveUrl": "https://www.linkedin.com/posts/tdeak67_pre-commit-hook-pii-guardrail-ugcPost-7512788980237660160--8oQ/",
+    "showOnSite": true
+  },
+  {
+    "id": "bedtime-stories",
+    "title": "Bedtime Stories",
+    "description": "An interactive web platform delivering personalized bedtime stories generated with AI.",
+    "githubUrl": null,
+    "liveUrl": "https://bedtime-stories.cloud",
+    "showOnSite": true
+  },
+  {
+    "id": "cv-matcher",
+    "title": "CV Matcher",
+    "description": "An AI-powered tool matching CVs with job descriptions, ranking suitability and identifying skill gaps.",
+    "githubUrl": "https://github.com/tdk67/cv-matcher",
+    "liveUrl": "https://www.linkedin.com/posts/tdeak67_genai-ml-agenticai-ugcPost-7482790023650586624-VfVQ",
+    "showOnSite": true
+  },
+  {
+    "id": "music-analyzer",
+    "title": "Music Analyzer",
+    "description": "A comprehensive audio analysis application extracting tempo, key, chord structures, and emotional features.",
+    "githubUrl": "https://github.com/tdk67/music-analyzer",
+    "liveUrl": "https://song-blueprint-tdeak67.netlify.app",
+    "showOnSite": true
+  }
+]

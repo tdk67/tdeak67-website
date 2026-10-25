@@ -1,0 +1,47 @@
+/* Hallmark · shape: Feature Ledger · genre: modern-minimal · theme: Cobalt (by request) · redesign: full
+ * hero: Stage · nav: edge-aligned · footer: mast · imagery: real-headshot · signature: tilted-specimen-cards
+ * axes: light/grotesk-sans/cool · posture: restrained · contrast: pass · fold: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P9 H9 E9 S9 R9 V9 · weakest: none, technical architectural ledger with electric cobalt precision */
+@import url("./tokens.css");
+@import url("./base.css");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.font-hand {
+  font-family: var(--font-hand);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Control active states */
+a:active, button:active {
+  transform: translateY(1px);
+}
+
+/* Technical ledger grid background */
+.technical-grid {
+  background-image: 
+    linear-gradient(to right, color-mix(in oklab, var(--color-rule) 60%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-rule) 60%, transparent) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Custom scrollbar for chat */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.markdown-body p {
+  margin-bottom: 0.75em;
+}
+
+.markdown-body ul, .markdown-body ol {
+  margin-bottom: 0.75em;
+}
